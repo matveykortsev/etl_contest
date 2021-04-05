@@ -2,8 +2,8 @@ import pymysql
 from .helpers import ping_container
 
 
-def test_container_is_alive(base_mysql_image):
-    assert ping_container(base_mysql_image)
+def test_container_is_alive(mysql_source_image):
+    assert ping_container(mysql_source_image)
 
 
 def test_containers_assets_is_ready(mysql_source_image,
