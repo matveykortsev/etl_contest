@@ -1,4 +1,5 @@
 import pymysql
+import os
 from .helpers import ping_container
 
 
@@ -39,7 +40,8 @@ def test_containers_assets_is_ready(mysql_source_image,
             dst_result = c.fetchone()
 
     assert src_result['total'] > 0
-    assert dst_result['total'] == 0
+    assert dst_result['total'] > 0
+    assert src_result == dst_result
 
 
 def test_data_transfer(mysql_source_image,
@@ -50,7 +52,40 @@ def test_data_transfer(mysql_source_image,
     :param mysql_destination_image: Контейнер mysql-назначения
     :return:
     """
+    dst_conn = pymysql.connect(**mysql_destination_image,
+                               cursorclass=pymysql.cursors.DictCursor)
+    with dst_conn:
+        with dst_conn.cursor() as c:
+            dst_query = """
+                SELECT
+                dt
+                FROM transactions_denormalized
+                ORDER BY dt DESC
+                LIMIT 1;
+                
+            """
+            c.execute(dst_query)
+            dst_result = c.fetchone()
+            print(dst_result)
 
-    #   put your code for testing here!
+    src_conn = pymysql.connect(**mysql_source_image,
+                               cursorclass=pymysql.cursors.DictCursor)
 
-    pass
+    with src_conn:
+        with src_conn.cursor() as c:
+            src_query = f"""
+                SELECT
+                    t.id,
+                    t.dt,
+                    t.idoper,
+                    t.move,
+                    t.amount,
+                    ot.name as name_oper
+                FROM transactions t
+                    JOIN operation_types ot ON t.idoper = ot.id
+                WHERE dt >= '{dst_result['dt']}'
+                INTO OUTFILE '/var/lib/mysql-files/transaction_denormalized.csv'
+                FIELDS TERMINATED BY ','
+                LINES TERMINATED BY '\n';
+            """
+            c.execute(src_query)

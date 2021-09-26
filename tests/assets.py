@@ -1,5 +1,7 @@
 import datetime
 
+START_DATE = datetime.datetime(2020, 1, 1, 0, 0, 0)
+END_DATE = datetime.datetime(2020, 1, 1, 4, 0, 0)
 
 source_ddl_transactions = """
 CREATE TABLE transactions (
@@ -55,3 +57,29 @@ CREATE TABLE transactions_denormalized (
 ENGINE = INNODB
 
 """
+
+source_copy_data = f"""
+SELECT
+    t.id,
+    t.dt,
+    t.idoper,
+    t.move,
+    t.amount,
+    ot.name as name_oper
+FROM transactions t
+    JOIN operation_types ot ON t.idoper = ot.id
+WHERE dt BETWEEN '{START_DATE}' AND '{END_DATE}'
+INTO OUTFILE '/var/lib/mysql-files/transaction_denormalized.csv'
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+"""
+
+destination_load_data = """
+LOAD DATA INFILE '/var/lib/mysql-files/transaction_denormalized.csv'
+INTO TABLE transactions_denormalized
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n';
+"""
+
+
+

@@ -6,7 +6,9 @@ from .assets import (source_ddl_transactions,
                      source_ddl_type_opers,
                      source_data_transactions,
                      source_data_opers,
-                     destination_ddl_transactions)
+                     destination_ddl_transactions,
+                     source_copy_data,
+                     destination_load_data)
 
 
 def get_session_id():
@@ -61,3 +63,17 @@ def load_struct_to_destination_db(mysql_credentials):
     with conn:
         with conn.cursor() as c:
             c.execute(destination_ddl_transactions)
+
+
+def save_source_data_to_csv(mysql_credentials):
+    conn = pymysql.connect(**mysql_credentials)
+    with conn:
+        with conn.cursor() as c:
+            c.execute(source_copy_data)
+
+
+def load_data_to_distanation(mysql_credentials):
+    conn = pymysql.connect(**mysql_credentials)
+    with conn:
+        with conn.cursor() as c:
+            c.execute(destination_load_data)

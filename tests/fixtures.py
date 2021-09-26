@@ -1,11 +1,14 @@
 import time
+import os
 import pytest   # noqa
 import docker   # noqa
 from .helpers import (get_session_id,
                       get_unused_port,
                       ping_container,
                       load_assets_to_source_db,
-                      load_struct_to_destination_db)
+                      load_struct_to_destination_db,
+                      save_source_data_to_csv,
+                      load_data_to_distanation)
 
 
 BASE_DOCKER_IMAGE = 'percona/percona-server:5.7.32'
@@ -21,8 +24,8 @@ class Container(object):
         self.credentials = {'host': 'localhost',
                             'port': self.unused_port,
                             'database': 'sandbox',
-                            'user': 'etl',
-                            'password': 'etl_contest',
+                            'user': 'root',
+                            'password': 'root_etl_contest',
                             'autocommit': True}
 
         self.env = {'MYSQL_DATABASE': 'sandbox',
@@ -58,6 +61,9 @@ class Container(object):
 def mysql_source_image():
     with Container() as c:
         load_assets_to_source_db(c.credentials)
+        save_source_data_to_csv(c.credentials)
+        os.system(f'docker cp {c.session_id}:/var/lib/mysql-files/transaction_denormalized.csv'
+                  ' /Users/matvejkorcev/Documents/etl_contest/tests')
         yield c.credentials
 
 
@@ -65,4 +71,7 @@ def mysql_source_image():
 def mysql_destination_image():
     with Container() as c:
         load_struct_to_destination_db(c.credentials)
+        os.system(f'docker cp /Users/matvejkorcev/Documents/etl_contest/tests/transaction_denormalized.csv'
+                  f' {c.session_id}:/var/lib/mysql-files/')
+        load_data_to_distanation(c.credentials)
         yield c.credentials
